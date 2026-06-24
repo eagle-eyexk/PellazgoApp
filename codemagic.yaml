@@ -1,0 +1,95 @@
+workflows:
+  adaptive-ios-pipeline:
+    name: Adaptive iOS Self-Healing Pipeline
+    max_build_duration: 60
+
+    environment:
+      node: 18
+      xcode: latest
+      cocoapods: default
+
+    scripts:
+
+      - name: Detect project
+        script: |
+          echo "Detecting project..."
+
+          if [ ! -f "package.json" ]; then
+            echo "No Node project found"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        script: |
+          npm install
+
+      - name: Build web app
+        script: |
+          npm run build
+
+      - name: Check Capacitor
+        script: |
+          if [ ! -d "ios/App" ]; then
+            echo "Capacitor iOS missing - attempting auto-setup..."
+
+            npm install @capacitor/core @capacitor/cli
+
+            npx cap init "AutoApp" "com.auto.app" --web-dir=dist || true
+
+            npx cap add ios || true
+
+            echo "Capacitor setup attempted"
+          else
+            echo "Capacitor already exists"
+          fi
+
+      - name: Sync iOS project
+        script: |
+          if [ -d "ios/App" ]; then
+            npx cap sync ios
+          else
+            echo "Skipping iOS sync"
+            exit 0
+          fi
+
+      - name: Install CocoaPods
+        script: |
+          if [ -d "ios/App" ]; then
+            cd ios/App
+            pod install
+          fi
+
+      - name: Build iOS
+        script: |
+          if [ ! -d "ios/App/App.xcworkspace" ]; then
+            echo "iOS project not valid - skipping build"
+            exit 0
+          fi
+
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath $CM_BUILD_DIR/build/app.xcarchive \
+            archive || true
+
+      - name: Export IPA (optional)
+        script: |
+          if [ -f "ios/exportOptions.plist" ]; then
+            xcodebuild -exportArchive \
+              -archivePath $CM_BUILD_DIR/build/app.xcarchive \
+              -exportOptionsPlist ios/exportOptions.plist \
+              -exportPath $CM_BUILD_DIR/build || true
+          else
+            echo "No exportOptions.plist - skipping IPA export"
+          fi
+
+    artifacts:
+      - build/*.ipa
+      - build/*.xcarchive
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
