@@ -139,3 +139,6 @@ export default function AdminOrders() {
             <DialogTitle className="font-heading text-xl">Porosia {selected?.order_number}</DialogTitle>
           </DialogHeader>
           {selected && (
+
+</div>
+</div>

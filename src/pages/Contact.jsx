@@ -67,11 +67,10 @@ export default function Contact() {
                   {t('contact.send')}
                 </button>
             )}
-          </div>
+          </form>
 
           {/* Contact info */}
           <div className="space-y-10">
-            <div className="flex gap-4">
             <div className="flex gap-4">
               <Phone className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
               <div>

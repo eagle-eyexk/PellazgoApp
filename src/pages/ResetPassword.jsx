@@ -68,6 +68,7 @@ export default function ResetPassword() {
         <div className="space-y-2">
           <Label htmlFor="password">New Password</Label>
           <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
               id="password"
               type="password"
@@ -83,7 +84,6 @@ export default function ResetPassword() {
         </div>
         <div className="space-y-2">
           <Label htmlFor="confirm">Confirm Password</Label>
-
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input

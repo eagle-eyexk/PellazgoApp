@@ -410,25 +410,25 @@ const SidebarMenu = React.forwardRef(({ className, ...props }, ref) => (
 ))
 SidebarMenu.displayName = "SidebarMenu"
 
+const SidebarMenuItem = React.forwardRef(({ className, ...props }, ref) => (
+  <li
+    ref={ref}
+    data-sidebar="menu-item"
+    className={cn("group/menu-item relative", className)}
+    {...props} />
+))
+SidebarMenuItem.displayName = "SidebarMenuItem"
+
+const sidebarMenuButtonVariants = cva(
   "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
-SidebarMenuItem.displayName = "SidebarMenuItem"
-
-const sidebarMenuButtonVariants = cva(
         default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         outline:
-const SidebarMenuItem = React.forwardRef(({ className, ...props }, ref) => (
-    {...props} />
-))
           "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
       },
-    ref={ref}
-    data-sidebar="menu-item"
-    className={cn("group/menu-item relative", className)}
       size: {
-
         default: "h-8 text-sm",
         sm: "h-7 text-xs",
         lg: "h-12 text-sm group-data-[collapsible=icon]:!p-0",
@@ -437,7 +437,16 @@ const SidebarMenuItem = React.forwardRef(({ className, ...props }, ref) => (
     defaultVariants: {
       variant: "default",
       size: "default",
+    },
+  }
+)
+
+const SidebarMenuButton = React.forwardRef((
+  {
     asChild = false,
+    isActive = false,
+    variant = "default",
+    size = "default",
     tooltip,
     className,
     ...props
@@ -449,6 +458,9 @@ const SidebarMenuItem = React.forwardRef(({ className, ...props }, ref) => (
 
   const button = (
     <Comp
+      ref={ref}
+      data-sidebar="menu-button"
+      data-size={size}
       data-active={isActive}
       className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
       {...props} />
@@ -521,13 +533,7 @@ SidebarMenuBadge.displayName = "SidebarMenuBadge"
 const SidebarMenuSkeleton = React.forwardRef(({ className, showIcon = false, ...props }, ref) => {
   // Random width between 50 to 90%.
   const width = React.useMemo(() => {
-      ref={ref}
-      data-sidebar="menu-button"
-      data-size={size}
     return `${Math.floor(Math.random() * 40) + 50}%`;
-    isActive = false,
-    variant = "default",
-    size = "default",
   }, [])
 
   return (
@@ -535,23 +541,13 @@ const SidebarMenuSkeleton = React.forwardRef(({ className, showIcon = false, ...
       ref={ref}
       data-sidebar="menu-skeleton"
       className={cn("flex h-8 items-center gap-2 rounded-md px-2", className)}
-
-const SidebarMenuButton = React.forwardRef((
-  {
-    },
-  }
-)
       {...props}>
-
       {showIcon && (
         <Skeleton className="size-4 rounded-md" data-sidebar="menu-skeleton-icon" />
-
       )}
       <Skeleton
-
         className="h-4 max-w-[--skeleton-width] flex-1"
         data-sidebar="menu-skeleton-text"
-
         style={
           {
             "--skeleton-width": width
@@ -609,32 +605,22 @@ export {
   SidebarGroup,
   SidebarGroupAction,
   SidebarGroupContent,
-
   SidebarGroupLabel,
   SidebarHeader,
-
   SidebarInput,
   SidebarInset,
-
   SidebarMenu,
-
   SidebarMenuAction,
   SidebarMenuBadge,
-
   SidebarMenuButton,
-
   SidebarMenuItem,
-
   SidebarMenuSkeleton,
   SidebarMenuSub,
   SidebarMenuSubButton,
-
   SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
-
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 }
-

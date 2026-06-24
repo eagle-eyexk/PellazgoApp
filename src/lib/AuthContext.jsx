@@ -51,6 +51,7 @@ export const AuthProvider = ({ children }) => {
         console.error('App state check failed:', appError);
         
         // Handle app-level errors
+        if (appError.status === 403 && appError.data?.extra_data?.reason) {
           const reason = appError.data.extra_data.reason;
           if (reason === 'auth_required') {
             setAuthError({
@@ -58,10 +59,8 @@ export const AuthProvider = ({ children }) => {
               message: 'Authentication required'
             });
           } else if (reason === 'user_not_registered') {
-
             setAuthError({
               type: 'user_not_registered',
-
               message: 'User not registered for this app'
             });
           } else {
@@ -145,4 +144,17 @@ export const AuthProvider = ({ children }) => {
       logout,
       navigateToLogin,
       checkUserAuth,
+      checkAppState
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

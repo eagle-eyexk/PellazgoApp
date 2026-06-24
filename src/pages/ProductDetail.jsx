@@ -227,3 +227,4 @@ export default function ProductDetail() {
         {/* Related */}
         {related.length > 0 && (
           <div className="mt-24">
+</div>

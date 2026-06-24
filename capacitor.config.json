@@ -1,0 +1,6 @@
+{
+  "appId": "com.pellazgo.app",
+  "appName": "Pellazgo Shop",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

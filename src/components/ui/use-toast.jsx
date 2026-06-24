@@ -142,18 +142,15 @@ function toast({ ...props }) {
 }
 
 function useToast() {
-  useEffect(() => {
+  const [state, setState] = useState(memoryState);
 
+  useEffect(() => {
     listeners.push(setState);
     return () => {
-
       const index = listeners.indexOf(setState);
       if (index > -1) {
-
         listeners.splice(index, 1);
-
       }
-
     };
   }, [state]);
 

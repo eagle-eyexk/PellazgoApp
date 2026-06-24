@@ -82,3 +82,53 @@ const FormControl = React.forwardRef(({ ...props }, ref) => {
         !error
           ? `${formDescriptionId}`
           : `${formDescriptionId} ${formMessageId}`
+      }
+      aria-invalid={!!error}
+      {...props} />)
+  );
+})
+FormControl.displayName = "FormControl"
+
+const FormDescription = React.forwardRef(({ className, ...props }, ref) => {
+  const { formDescriptionId } = useFormField()
+
+  return (
+    (<p
+      ref={ref}
+      id={formDescriptionId}
+      className={cn("text-[0.8rem] text-muted-foreground", className)}
+      {...props} />)
+  );
+})
+FormDescription.displayName = "FormDescription"
+
+const FormMessage = React.forwardRef(({ className, children, ...props }, ref) => {
+  const { error, formMessageId } = useFormField()
+  const body = error ? String(error?.message) : children
+
+  if (!body) {
+    return null
+  }
+
+  return (
+    (<p
+      ref={ref}
+      id={formMessageId}
+      className={cn("text-[0.8rem] font-medium text-destructive", className)}
+      {...props}>
+      {body}
+    </p>)
+  );
+})
+FormMessage.displayName = "FormMessage"
+
+export {
+  useFormField,
+  Form,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormDescription,
+  FormMessage,
+  FormField,
+}
