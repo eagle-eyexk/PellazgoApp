@@ -2,8 +2,5 @@
   "appId": "com.pellazgo.app",
   "appName": "Pellazgo Shop",
   "webDir": "dist",
-  "bundledWebRuntime": false,
-  "ios": {
-    "preferredContentMode": "capacitor"
-  }
+  "bundledWebRuntime": false
 }
