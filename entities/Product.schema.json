@@ -1,0 +1,281 @@
+
+{
+
+  "name": "Product",
+
+  "type": "object",
+
+  "properties": {
+
+    "name_sq": {
+
+      "type": "string",
+
+      "description": "Product name in Albanian"
+
+    },
+
+    "name_en": {
+
+      "type": "string",
+
+      "description": "Product name in English"
+
+    },
+
+    "slug": {
+
+      "type": "string",
+
+      "description": "URL-friendly slug"
+
+    },
+
+    "sku": {
+
+      "type": "string",
+
+      "description": "Stock keeping unit"
+
+    },
+
+    "category_id": {
+
+      "type": "string",
+
+      "description": "Category reference"
+
+    },
+
+    "brand": {
+
+      "type": "string"
+
+    },
+
+    "description_sq": {
+
+      "type": "string",
+
+      "description": "Description in Albanian"
+
+    },
+
+    "description_en": {
+
+      "type": "string",
+
+      "description": "Description in English"
+
+    },
+
+    "price": {
+
+      "type": "number",
+
+      "description": "Regular price in EUR"
+
+    },
+
+    "sale_price": {
+
+      "type": "number",
+
+      "description": "Sale price if applicable"
+
+    },
+
+    "cost_price": {
+
+      "type": "number",
+
+      "description": "Cost price for margin calc"
+
+    },
+
+    "images": {
+
+      "type": "array",
+
+      "items": {
+
+        "type": "string"
+
+      },
+
+      "description": "Product image URLs"
+
+    },
+
+    "stock": {
+
+      "type": "integer",
+
+      "default": 0
+
+    },
+
+    "low_stock_threshold": {
+
+      "type": "integer",
+
+      "default": 5
+
+    },
+
+    "status": {
+
+      "type": "string",
+
+      "enum": [
+
+        "active",
+
+        "draft",
+
+        "archived"
+
+      ],
+
+      "default": "active"
+
+    },
+
+    "featured": {
+
+      "type": "boolean",
+
+      "default": false
+
+    },
+
+    "is_new_arrival": {
+
+      "type": "boolean",
+
+      "default": false
+
+    },
+
+    "is_best_seller": {
+
+      "type": "boolean",
+
+      "default": false
+
+    },
+
+    "tags": {
+
+      "type": "array",
+
+      "items": {
+
+        "type": "string"
+
+      }
+
+    },
+
+    "specifications_sq": {
+
+      "type": "string"
+
+    },
+
+    "specifications_en": {
+
+      "type": "string"
+
+    },
+
+    "rating": {
+
+      "type": "number",
+
+      "default": 0
+
+    },
+
+    "review_count": {
+
+      "type": "integer",
+
+      "default": 0
+
+    }
+
+  },
+
+  "required": [
+
+    "name_sq",
+
+    "price"
+
+  ]
+
+}EOF 
+
+
+
+cat > entities/Review.schema.json << 'EOF'
+
+{
+
+  "name": "Review",
+
+  "type": "object",
+
+  "properties": {
+
+    "product_id": {
+
+      "type": "string"
+
+    },
+
+    "customer_name": {
+
+      "type": "string"
+
+    },
+
+    "customer_email": {
+
+      "type": "string"
+
+    },
+
+    "rating": {
+
+      "type": "integer"
+
+    },
+
+    "comment": {
+
+      "type": "string"
+
+    },
+
+    "is_approved": {
+
+      "type": "boolean",
+
+      "default": false
+
+    }
+
+  },
+
+  "required": [
+
+    "product_id",
+
+    "rating"
+
+  ]
+
+} 
+

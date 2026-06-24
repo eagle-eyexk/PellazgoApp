@@ -1,0 +1,117 @@
+
+{
+
+  "name": "BlogPost",
+
+  "type": "object",
+
+  "properties": {
+
+    "title_sq": {
+
+      "type": "string"
+
+    },
+
+    "title_en": {
+
+      "type": "string"
+
+    },
+
+    "slug": {
+
+      "type": "string"
+
+    },
+
+    "content_sq": {
+
+      "type": "string"
+
+    },
+
+    "content_en": {
+
+      "type": "string"
+
+    },
+
+    "excerpt_sq": {
+
+      "type": "string"
+
+    },
+
+    "excerpt_en": {
+
+      "type": "string"
+
+    },
+
+    "cover_image": {
+
+      "type": "string"
+
+    },
+
+    "category": {
+
+      "type": "string"
+
+    },
+
+    "tags": {
+
+      "type": "array",
+
+      "items": {
+
+        "type": "string"
+
+      }
+
+    },
+
+    "status": {
+
+      "type": "string",
+
+      "enum": [
+
+        "draft",
+
+        "published"
+
+      ],
+
+      "default": "draft"
+
+    },
+
+    "author": {
+
+      "type": "string"
+
+    },
+
+    "meta_title_sq": {
+
+      "type": "string"
+
+    },
+
+    "meta_title_en": {
+
+      "type": "string"
+
+    },
+
+    "meta_description_sq": {
+
+      "type": "string"
+
+    },
+
+  
+

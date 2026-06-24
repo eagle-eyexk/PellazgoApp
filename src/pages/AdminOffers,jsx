@@ -1,0 +1,165 @@
+import React, { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Plus, Edit, Trash2, Tag } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+const offerTypes = [
+  { value: 'flash_sale', label: 'Flash Sale' },
+  { value: 'coupon', label: 'Kupon' },
+  { value: 'discount', label: 'Zbritje' },
+  { value: 'seasonal', label: 'Sezonal' },
+  { value: 'bundle', label: 'Paketë' },
+  { value: 'buy_x_get_y', label: 'Bli X Merr Y' },
+];
+
+export default function AdminOffers() {
+  const [offers, setOffers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(getEmpty());
+
+  function getEmpty() {
+    return {
+      title_sq: '', title_en: '', type: 'coupon', code: '', discount_type: 'percentage',
+      discount_value: '', min_purchase: 0, start_date: '', end_date: '', is_active: true,
+      usage_limit: '', usage_count: 0,
+    };
+  }
+
+  const load = () => {
+    setLoading(true);
+    base44.entities.Offer.list('-created_date').then(setOffers).catch(() => {}).finally(() => setLoading(false));
+  };
+  useEffect(load, []);
+
+  const openNew = () => { setEditing(null); setForm(getEmpty()); setDialogOpen(true); };
+  const openEdit = (o) => {
+    setEditing(o);
+    setForm({
+      title_sq: o.title_sq || '', title_en: o.title_en || '', type: o.type || 'coupon',
+      code: o.code || '', discount_type: o.discount_type || 'percentage',
+      discount_value: o.discount_value || '', min_purchase: o.min_purchase || 0,
+      start_date: o.start_date ? o.start_date.slice(0, 16) : '',
+      end_date: o.end_date ? o.end_date.slice(0, 16) : '',
+      is_active: o.is_active !== false, usage_limit: o.usage_limit || '', usage_count: o.usage_count || 0,
+    });
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const data = {
+      ...form,
+      discount_value: parseFloat(form.discount_value) || 0,
+      min_purchase: parseFloat(form.min_purchase) || 0,
+      usage_limit: form.usage_limit ? parseInt(form.usage_limit) : null,
+      start_date: form.start_date || null,
+      end_date: form.end_date || null,
+    };
+    if (editing) {
+      await base44.entities.Offer.update(editing.id, data);
+    } else {
+      await base44.entities.Offer.create(data);
+    }
+    setDialogOpen(false); setSaving(false); load();
+  };
+
+  const deleteOffer = async (o) => {
+    await base44.entities.Offer.delete(o.id);
+    load();
+  };
+
+  const inputClass = "w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#8C764E] transition-colors font-body";
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="font-heading text-2xl text-white">Ofertat</h1>
+        <button onClick={openNew} className="bg-[#8C764E] text-white px-4 py-2.5 rounded text-xs font-body tracking-widest uppercase hover:bg-[#a68b5b] transition-colors flex items-center gap-2">
+          <Plus className="w-3.5 h-3.5" /> Shto Ofertë
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {loading ? (
+          [...Array(3)].map((_, i) => <div key={i} className="h-40 bg-white/5 animate-pulse rounded" />)
+        ) : offers.map(o => (
+          <div key={o.id} className="bg-white/5 border border-white/10 rounded p-5 space-y-3">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-sm font-body text-white font-medium">{o.title_sq}</h3>
+                {o.code && <p className="text-xs font-body text-[#8C764E] mt-1">Kodi: {o.code}</p>}
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded font-body ${o.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                {o.is_active ? 'Aktiv' : 'Joaktiv'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Tag className="w-3.5 h-3.5 text-white/30" />
+              <span className="text-sm font-body text-white/60">
+                {o.discount_type === 'percentage' ? `${o.discount_value}%` : `€${o.discount_value}`} zbritje
+              </span>
+            </div>
+            <p className="text-xs font-body text-white/30">
+              Tip: {offerTypes.find(t => t.value === o.type)?.label || o.type}
+              {o.usage_limit && ` · Limiti: ${o.usage_count || 0}/${o.usage_limit}`}
+            </p>
+            <div className="flex gap-2 pt-2 border-t border-white/10">
+              <button onClick={() => openEdit(o)} className="p-1.5 hover:bg-white/10 rounded transition-colors"><Edit className="w-3.5 h-3.5 text-white/50" /></button>
+              <button onClick={() => deleteOffer(o)} className="p-1.5 hover:bg-red-500/20 rounded transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400/50" /></button>
+            </div>
+          </div>
+        ))}
+        {!loading && offers.length === 0 && (
+          <div className="col-span-full text-center py-16 text-white/30 text-sm font-body">Nuk ka oferta ende</div>
+        )}
+      </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="bg-[#141414] border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-xl">{editing ? 'Ndrysho Ofertën' : 'Ofertë e Re'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="text-xs font-body text-white/40 mb-1 block">Titulli (SQ)</label><input value={form.title_sq} onChange={e => setForm({ ...form, title_sq: e.target.value })} className={inputClass} /></div>
+              <div><label className="text-xs font-body text-white/40 mb-1 block">Title (EN)</label><input value={form.title_en} onChange={e => setForm({ ...form, title_en: e.target.value })} className={inputClass} /></div>
+              <div><label className="text-xs font-body text-white/40 mb-1 block">Tipi</label>
+                <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className={inputClass}>
+                  {offerTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div><label className="text-xs font-body text-white/40 mb-1 block">Kodi (opsional)</label><input value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} className={inputClass} /></div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div><label className="text-xs font-body text-white/40 mb-1 block">Tipi Zbritjes</label>
+                <select value={form.discount_type} onChange={e => setForm({ ...form, discount_type: e.target.value })} className={inputClass}>
+                  <option value="percentage">Përqindje (%)</option>
+                  <option value="fixed_amount">Shumë Fikse (€)</option>
+                </select>
+              </div>
+              <div><label className="text-xs font-body text-white/40 mb-1 block">Vlera</label><input type="number" value={form.discount_value} onChange={e => setForm({ ...form, discount_value: e.target.value })} className={inputClass} /></div>
+              <div><label className="text-xs font-body text-white/40 mb-1 block">Blerja Min. (€)</label><input type="number" value={form.min_purchase} onChange={e => setForm({ ...form, min_purchase: e.target.value })} className={inputClass} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="text-xs font-body text-white/40 mb-1 block">Fillon</label><input type="datetime-local" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} className={inputClass} /></div>
+              <div><label className="text-xs font-body text-white/40 mb-1 block">Mbaron</label><input type="datetime-local" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} className={inputClass} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="text-xs font-body text-white/40 mb-1 block">Limiti i Përdorimit</label><input type="number" value={form.usage_limit} onChange={e => setForm({ ...form, usage_limit: e.target.value })} className={inputClass} /></div>
+              <div className="flex items-end">
+                <label className="flex items-center gap-2 text-sm font-body cursor-pointer">
+                  <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} className="accent-[#8C764E]" />
+                  Aktiv
+                </label>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+              <button onClick={() => setDialogOpen(false)} className="px-4 py-2.5 text-xs font-body text-white/50 hover:text-white">Anulo</button>
+              <button onClick={handleSave} disabled={saving || !form.title_sq} className="bg-[#8C764E] text-white px-6 py-2.5 rounded text-xs font-body tracking-widest uppercase hover:bg-[#a68b5b] disabled:opacity-40">
+                {saving ? 'Duke ruajtur...' : 'Ruaj'}
+              </button>
+            </div>
+

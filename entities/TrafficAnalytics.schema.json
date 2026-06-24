@@ -1,0 +1,117 @@
+
+{
+
+  "name": "TrafficAnalytics",
+
+  "type": "object",
+
+  "properties": {
+
+    "session_id": {
+
+      "type": "string"
+
+    },
+
+    "source": {
+
+      "type": "string",
+
+      "enum": [
+
+        "google",
+
+        "facebook",
+
+        "instagram",
+
+        "tiktok",
+
+        "direct",
+
+        "referral",
+
+        "email"
+
+      ]
+
+    },
+
+    "utm_campaign": {
+
+      "type": "string"
+
+    },
+
+    "utm_medium": {
+
+      "type": "string"
+
+    },
+
+    "referrer": {
+
+      "type": "string"
+
+    },
+
+    "page_visited": {
+
+      "type": "string"
+
+    },
+
+    "converted": {
+
+      "type": "boolean",
+
+      "default": false
+
+    },
+
+    "order_id": {
+
+      "type": "string"
+
+    },
+
+    "revenue": {
+
+      "type": "number",
+
+      "default": 0
+
+    },
+
+    "country": {
+
+      "type": "string"
+
+    },
+
+    "device": {
+
+      "type": "string",
+
+      "enum": [
+
+        "desktop",
+
+        "tablet",
+
+        "mobile"
+
+      ]
+
+    }
+
+  },
+
+  "required": [
+
+    "source"
+
+  ]
+
+} 
+

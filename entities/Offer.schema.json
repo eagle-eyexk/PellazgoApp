@@ -1,0 +1,157 @@
+
+{
+
+  "name": "Offer",
+
+  "type": "object",
+
+  "properties": {
+
+    "title_sq": {
+
+      "type": "string"
+
+    },
+
+    "title_en": {
+
+      "type": "string"
+
+    },
+
+    "type": {
+
+      "type": "string",
+
+      "enum": [
+
+        "flash_sale",
+
+        "coupon",
+
+        "discount",
+
+        "seasonal",
+
+        "bundle",
+
+        "buy_x_get_y"
+
+      ]
+
+    },
+
+    "code": {
+
+      "type": "string",
+
+      "description": "Coupon code if applicable"
+
+    },
+
+    "discount_type": {
+
+      "type": "string",
+
+      "enum": [
+
+        "percentage",
+
+        "fixed_amount"
+
+      ]
+
+    },
+
+    "discount_value": {
+
+      "type": "number"
+
+    },
+
+    "min_purchase": {
+
+      "type": "number",
+
+      "default": 0
+
+    },
+
+    "start_date": {
+
+      "type": "string",
+
+      "format": "date-time"
+
+    },
+
+    "end_date": {
+
+      "type": "string",
+
+      "format": "date-time"
+
+    },
+
+    "is_active": {
+
+      "type": "boolean",
+
+      "default": true
+
+    },
+
+    "applicable_products": {
+
+      "type": "array",
+
+      "items": {
+
+        "type": "string"
+
+      }
+
+    },
+
+    "applicable_categories": {
+
+      "type": "array",
+
+      "items": {
+
+        "type": "string"
+
+      }
+
+    },
+
+    "usage_limit": {
+
+      "type": "integer"
+
+    },
+
+    "usage_count": {
+
+      "type": "integer",
+
+      "default": 0
+
+    }
+
+  },
+
+  "required": [
+
+    "title_sq",
+
+    "type",
+
+    "discount_type",
+
+    "discount_value"
+
+  ]
+
+} 
+

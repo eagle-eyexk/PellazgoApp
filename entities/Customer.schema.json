@@ -1,0 +1,145 @@
+
+{
+
+  "name": "Customer",
+
+  "type": "object",
+
+  "properties": {
+
+    "email": {
+
+      "type": "string"
+
+    },
+
+    "full_name": {
+
+      "type": "string"
+
+    },
+
+    "phone": {
+
+      "type": "string"
+
+    },
+
+    "address": {
+
+      "type": "string"
+
+    },
+
+    "city": {
+
+      "type": "string"
+
+    },
+
+    "country": {
+
+      "type": "string",
+
+      "default": "Albania"
+
+    },
+
+    "postal_code": {
+
+      "type": "string"
+
+    },
+
+    "language": {
+
+      "type": "string",
+
+      "enum": [
+
+        "sq",
+
+        "en"
+
+      ],
+
+      "default": "sq"
+
+    },
+
+    "total_orders": {
+
+      "type": "integer",
+
+      "default": 0
+
+    },
+
+    "total_spent": {
+
+      "type": "number",
+
+      "default": 0
+
+    },
+
+    "rewards_points": {
+
+      "type": "integer",
+
+      "default": 0
+
+    },
+
+    "status": {
+
+      "type": "string",
+
+      "enum": [
+
+        "active",
+
+        "disabled"
+
+      ],
+
+      "default": "active"
+
+    },
+
+    "wishlist": {
+
+      "type": "array",
+
+      "items": {
+
+        "type": "string"
+
+      },
+
+      "description": "Product IDs"
+
+    },
+
+    "saved_addresses": {
+
+      "type": "array",
+
+      "items": {
+
+        "type": "object"
+
+      }
+
+    }
+
+  },
+
+  "required": [
+
+    "email"
+
+  ]
+
+} 
+

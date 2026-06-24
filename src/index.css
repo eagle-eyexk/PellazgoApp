@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Pellazgo — Forest Green & Antique Gold */
+    --background: 150 8% 97%;
+    --foreground: 160 30% 8%;
+    --card: 150 8% 97%;
+    --card-foreground: 160 30% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 160 30% 8%;
+    --primary: 37 40% 46%;
+    --primary-foreground: 150 8% 97%;
+    --secondary: 155 30% 12%;
+    --secondary-foreground: 150 8% 97%;
+    --muted: 150 6% 93%;
+    --muted-foreground: 160 10% 40%;
+    --accent: 37 40% 46%;
+    --accent-foreground: 150 8% 97%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 150 10% 86%;
+    --input: 150 10% 86%;
+    --ring: 37 40% 46%;
+    --chart-1: 37 40% 46%;
+    --chart-2: 155 40% 30%;
+    --chart-3: 220 50% 45%;
+    --chart-4: 0 60% 50%;
+    --chart-5: 280 40% 50%;
+    --radius: 0.125rem;
+    --font-heading: 'Cormorant Garamond', serif;
+    --font-body: 'Inter', sans-serif;
+    --font-display: 'Cormorant Garamond', serif;
+    --font-mono: ui-monospace, monospace;
+
+    /* Custom brand tokens */
+    --forest: 155 48% 14%;
+    --forest-light: 155 35% 22%;
+    --gold: 37 40% 46%;
+    --gold-light: 37 50% 58%;
+    --cream: 40 30% 96%;
+    --obsidian: 160 30% 8%;
+
+    --sidebar-background: 155 48% 10%;
+    --sidebar-foreground: 40 30% 90%;
+    --sidebar-primary: 37 40% 46%;
+    --sidebar-primary-foreground: 155 48% 10%;
+    --sidebar-accent: 155 40% 16%;
+    --sidebar-accent-foreground: 40 30% 90%;
+    --sidebar-border: 155 30% 18%;
+    --sidebar-ring: 37 40% 46%;
+  }
+
+  .dark {
+    --background: 155 48% 10%;
+    --foreground: 40 30% 94%;
+    --card: 155 45% 13%;
+    --card-foreground: 40 30% 94%;
+    --popover: 155 45% 13%;
+    --popover-foreground: 40 30% 94%;
+    --primary: 37 45% 55%;
+    --primary-foreground: 155 48% 10%;
+    --secondary: 155 35% 20%;
+    --secondary-foreground: 40 30% 94%;
+    --muted: 155 35% 17%;
+    --muted-foreground: 40 15% 60%;
+    --accent: 37 45% 55%;
+    --accent-foreground: 155 48% 10%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 155 30% 20%;
+    --input: 155 30% 20%;
+    --ring: 37 45% 55%;
+    --sidebar-background: 155 48% 8%;
+    --sidebar-foreground: 40 30% 90%;
+    --sidebar-primary: 37 45% 55%;
+    --sidebar-primary-foreground: 155 48% 8%;
+    --sidebar-accent: 155 40% 14%;
+    --sidebar-accent-foreground: 40 30% 90%;
+    --sidebar-border: 155 30% 16%;
+    --sidebar-ring: 37 45% 55%;
+  }
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }

@@ -1,0 +1,207 @@
+
+{
+
+  "name": "Order",
+
+  "type": "object",
+
+  "properties": {
+
+    "order_number": {
+
+      "type": "string"
+
+    },
+
+    "customer_email": {
+
+      "type": "string"
+
+    },
+
+    "customer_name": {
+
+      "type": "string"
+
+    },
+
+    "customer_phone": {
+
+      "type": "string"
+
+    },
+
+    "items": {
+
+      "type": "array",
+
+      "items": {
+
+        "type": "object"
+
+      },
+
+      "description": "Array of {product_id, name, price, quantity, image}"
+
+    },
+
+    "subtotal": {
+
+      "type": "number"
+
+    },
+
+    "shipping_cost": {
+
+      "type": "number",
+
+      "default": 0
+
+    },
+
+    "discount": {
+
+      "type": "number",
+
+      "default": 0
+
+    },
+
+    "total": {
+
+      "type": "number"
+
+    },
+
+    "coupon_code": {
+
+      "type": "string"
+
+    },
+
+    "status": {
+
+      "type": "string",
+
+      "enum": [
+
+        "pending",
+
+        "paid",
+
+        "processing",
+
+        "shipped",
+
+        "delivered",
+
+        "returned",
+
+        "cancelled"
+
+      ],
+
+      "default": "pending"
+
+    },
+
+    "payment_method": {
+
+      "type": "string",
+
+      "enum": [
+
+        "stripe",
+
+        "paypal",
+
+        "bank_transfer"
+
+      ]
+
+    },
+
+    "payment_status": {
+
+      "type": "string",
+
+      "enum": [
+
+        "unpaid",
+
+        "paid",
+
+        "refunded",
+
+        "partial_refund"
+
+      ],
+
+      "default": "unpaid"
+
+    },
+
+    "tracking_number": {
+
+      "type": "string"
+
+    },
+
+    "billing_address": {
+
+      "type": "object"
+
+    },
+
+    "shipping_address": {
+
+      "type": "object"
+
+    },
+
+    "notes": {
+
+      "type": "string"
+
+    },
+
+    "admin_notes": {
+
+      "type": "string"
+
+    },
+
+    "is_guest": {
+
+      "type": "boolean",
+
+      "default": false
+
+    },
+
+    "traffic_source": {
+
+      "type": "string"
+
+    },
+
+    "utm_campaign": {
+
+      "type": "string"
+
+    }
+
+  },
+
+  "required": [
+
+    "customer_email",
+
+    "items",
+
+    "total"
+
+  ]
+
+} 
+
