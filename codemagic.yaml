@@ -1,1 +1,74 @@
-[PASTE THE codemagic.yaml CONTENT HERE]
+workflows:
+  ios-release:
+    name: Pellazgo iOS Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    integrations:
+      app_store_connect: pellazgo_asc
+
+    environment:
+      node: 18
+      xcode: latest
+      cocoapods: default
+      vars:
+        BUNDLE_ID: "com.pellazgo.pellazgo"
+        APP_NAME: "Pellazgo"
+        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_SCHEME: "App"
+
+    scripts:
+      - name: Fix Xcode project signing
+        script: |
+          echo "Fixing Xcode project signing settings..."
+          python3 fix_project.py
+
+      - name: Install dependencies & build web app
+        script: |
+          echo "Installing dependencies..."
+          npm ci --prefer-offline
+          echo "Building web app..."
+          npm run build
+
+      - name: Sync Capacitor and install pods
+        script: |
+          echo "Syncing Capacitor..."
+          npx cap sync ios
+          echo "Installing CocoaPods..."
+          cd ios/App && pod install --repo-update
+
+      - name: Build archive
+        script: |
+          echo "Building archive..."
+          cd ios/App
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath $CM_BUILD_DIR/build/App.xcarchive \
+            -allowProvisioningUpdates \
+            -allowProvisioningDeviceRegistration \
+            archive
+
+      - name: Export IPA
+        script: |
+          echo "Exporting IPA..."
+          cd ios/App
+          xcodebuild \
+            -exportArchive \
+            -archivePath $CM_BUILD_DIR/build/App.xcarchive \
+            -exportOptionsPlist exportOptions.plist \
+            -exportPath $CM_BUILD_DIR/build/ipa \
+            -allowProvisioningDeviceRegistration
+
+    artifacts:
+      - build/ipa/*.ipa
+      - build/App.xcarchive
+
+    publishing:
+
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
