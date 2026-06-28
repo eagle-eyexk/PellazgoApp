@@ -45,44 +45,57 @@ workflows:
           echo "✅ Certificate installed"
 
       # ──────────────────────────────────────────────────────────────
-      # 3. Fix Xcode project to use AUTOMATIC signing
+      # 3. Fix bundle ID and signing settings
       # ──────────────────────────────────────────────────────────────
-      - name: Fix Xcode project signing
+      - name: Fix bundle ID and signing
         script: |
-          echo "🔧 Setting Xcode project to Automatic signing..."
+          echo "🔧 Fixing bundle ID to $BUNDLE_ID..."
           python3 -c "
           import re
           import os
 
-          PROJECT_FILE = 'ios/App/App.xcodeproj/project.pbxproj'
+          BUNDLE_ID = 'com.pellazgo.pellazgo'
+          TEAM_ID = 'H4QUDPK7S3'
+          PROFILE_NAME = 'PellazgoApp'
 
-          if not os.path.exists(PROJECT_FILE):
-              print(f'Project file not found: {PROJECT_FILE}')
-              exit(1)
+          # Fix Info.plist
+          info_plist = 'ios/App/App/Info.plist'
+          if os.path.exists(info_plist):
+              with open(info_plist, 'r') as f:
+                  content = f.read()
+              content = re.sub(r'<key>CFBundleIdentifier</key>\\s*<string>.*?</string>',
+                               f'<key>CFBundleIdentifier</key>\\n\\t<string>{BUNDLE_ID}</string>', content)
+              with open(info_plist, 'w') as f:
+                  f.write(content)
+              print('✅ Info.plist updated')
 
-          with open(PROJECT_FILE, 'r') as f:
-              content = f.read()
+          # Fix project.pbxproj
+          project_file = 'ios/App/App.xcodeproj/project.pbxproj'
+          if os.path.exists(project_file):
+              with open(project_file, 'r') as f:
+                  content = f.read()
 
-          # Set to Automatic signing
-          content = re.sub(r'CODE_SIGN_STYLE = Manual;', 'CODE_SIGN_STYLE = Automatic;', content)
-          content = re.sub(r'CODE_SIGN_STYLE = .*?;', 'CODE_SIGN_STYLE = Automatic;', content)
+              # Update bundle ID in all places
+              content = re.sub(r'PRODUCT_BUNDLE_IDENTIFIER = .*?;', f'PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};', content)
 
-          # Remove manual profile specifier
-          content = re.sub(r'PROVISIONING_PROFILE_SPECIFIER = .*?;', '', content)
+              # Set manual signing
+              content = re.sub(r'CODE_SIGN_STYLE = Automatic;', 'CODE_SIGN_STYLE = Manual;', content)
+              content = re.sub(r'CODE_SIGN_STYLE = .*?;', 'CODE_SIGN_STYLE = Manual;', content)
 
-          # Remove any PROVISIONING_PROFILE lines
-          content = re.sub(r'PROVISIONING_PROFILE = .*?;', '', content)
+              # Set team ID
+              content = re.sub(r'DEVELOPMENT_TEAM = .*?;', f'DEVELOPMENT_TEAM = {TEAM_ID};', content)
 
-          # Set DEVELOPMENT_TEAM
-          content = re.sub(r'DEVELOPMENT_TEAM = .*?;', f'DEVELOPMENT_TEAM = H4QUDPK7S3;', content)
+              # Set profile
+              content = re.sub(r'PROVISIONING_PROFILE_SPECIFIER = .*?;', f'PROVISIONING_PROFILE_SPECIFIER = \"{PROFILE_NAME}\";', content)
 
-          # Clean up empty lines
-          content = re.sub(r'\n\s*\n', '\n', content)
+              # Also add to any buildSettings block
+              pattern = r'(buildSettings = \\{)'
+              replacement = r'\\1\\n\\t\\t\\t\\tPRODUCT_BUNDLE_IDENTIFIER = ' + BUNDLE_ID + ';\\n\\t\\t\\t\\tDEVELOPMENT_TEAM = ' + TEAM_ID + ';\\n\\t\\t\\t\\tCODE_SIGN_STYLE = Manual;\\n\\t\\t\\t\\tPROVISIONING_PROFILE_SPECIFIER = \"' + PROFILE_NAME + '\";'
+              content = re.sub(pattern, replacement, content)
 
-          with open(PROJECT_FILE, 'w') as f:
-              f.write(content)
-
-          print('✅ Project set to Automatic signing')
+              with open(project_file, 'w') as f:
+                  f.write(content)
+              print('✅ project.pbxproj updated')
           "
 
       # ──────────────────────────────────────────────────────────────
@@ -96,39 +109,17 @@ workflows:
           npm run build
 
       # ──────────────────────────────────────────────────────────────
-      # 5. Sync Capacitor and copy web assets
+      # 5. Sync Capacitor (this updates the iOS project)
       # ──────────────────────────────────────────────────────────────
-      - name: Sync Capacitor and copy web assets
+      - name: Sync Capacitor
         script: |
           echo "🔄 Syncing Capacitor..."
           npx cap sync ios
 
-          echo "📁 Copying web assets to iOS project..."
-          mkdir -p ios/App/App/public
-          mkdir -p ios/App/App/Base.lproj
-
+          # Also copy capacitor.config.json to iOS folder
           if [ -f "capacitor.config.json" ]; then
             cp capacitor.config.json ios/App/App/
             echo "✅ capacitor.config.json copied"
-          fi
-
-          if [ -d "public" ]; then
-            cp -r public/* ios/App/App/public/
-            echo "✅ public assets copied"
-          fi
-
-          if [ ! -f "ios/App/App/config.xml" ]; then
-            echo "<?xml version='1.0' encoding='utf-8'?>" > ios/App/App/config.xml
-            echo "<widget id=\"$BUNDLE_ID\" version=\"1.0.0\" xmlns=\"http://www.w3.org/ns/widgets\" xmlns:cdv=\"http://cordova.apache.org/ns/1.0\">" >> ios/App/App/config.xml
-            echo "  <name>$APP_NAME</name>" >> ios/App/App/config.xml
-            echo "  <description>Pellazgo iOS App</description>" >> ios/App/App/config.xml
-            echo "  <author email=\"info@pellazgo.com\" href=\"https://pellazgo.com/\">Pellazgo Team</author>" >> ios/App/App/config.xml
-            echo "  <content src=\"index.html\" />" >> ios/App/App/config.xml
-            echo "  <access origin=\"*\" />" >> ios/App/App/config.xml
-            echo "  <allow-intent href=\"http://*/*\" />" >> ios/App/App/config.xml
-            echo "  <allow-intent href=\"https://*/*\" />" >> ios/App/App/config.xml
-            echo "</widget>" >> ios/App/App/config.xml
-            echo "✅ config.xml created"
           fi
 
       # ──────────────────────────────────────────────────────────────
@@ -140,7 +131,7 @@ workflows:
           cd ios/App && pod install --repo-update
 
       # ──────────────────────────────────────────────────────────────
-      # 7. Build archive (Automatic signing – no profile specified)
+      # 7. Build archive (with manual signing flags)
       # ──────────────────────────────────────────────────────────────
       - name: Build archive
         script: |
@@ -155,6 +146,9 @@ workflows:
             -allowProvisioningUpdates \
             -allowProvisioningDeviceRegistration \
             DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
+            PROVISIONING_PROFILE_SPECIFIER="PellazgoApp" \
+            CODE_SIGN_STYLE=Manual \
+            PRODUCT_BUNDLE_IDENTIFIER=$BUNDLE_ID \
             archive
 
       # ──────────────────────────────────────────────────────────────
@@ -171,7 +165,8 @@ workflows:
             -exportPath $CM_BUILD_DIR/build/ipa \
             -allowProvisioningUpdates \
             -allowProvisioningDeviceRegistration \
-            DEVELOPMENT_TEAM=$APPLE_TEAM_ID
+            DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
+            PROVISIONING_PROFILE_SPECIFIER="PellazgoApp"
 
     artifacts:
       - build/ipa/*.ipa
