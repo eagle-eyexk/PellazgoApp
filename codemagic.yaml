@@ -21,15 +21,7 @@ workflows:
 
     scripts:
       # ──────────────────────────────────────────────────────────────
-      # 1. Fix Xcode project (detects profile name automatically)
-      # ──────────────────────────────────────────────────────────────
-      - name: Fix Xcode project signing
-        script: |
-          echo "🔧 Fixing Xcode project signing settings..."
-          python3 fix_project.py
-
-      # ──────────────────────────────────────────────────────────────
-      # 2. Install provisioning profile
+      # 1. Install provisioning profile
       # ──────────────────────────────────────────────────────────────
       - name: Install provisioning profile
         script: |
@@ -40,7 +32,7 @@ workflows:
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
       # ──────────────────────────────────────────────────────────────
-      # 3. Set up certificate in keychain
+      # 2. Set up certificate in keychain
       # ──────────────────────────────────────────────────────────────
       - name: Set up certificate
         script: |
@@ -51,6 +43,14 @@ workflows:
           security import signing/*.p12 -k build.keychain -P "$CERT_PASSWORD" -A
           security set-keychain-settings -t 3600 -l build.keychain
           echo "✅ Certificate installed"
+
+      # ──────────────────────────────────────────────────────────────
+      # 3. Let Xcode auto-detect the profile
+      # ──────────────────────────────────────────────────────────────
+      - name: Auto-configure signing
+        script: |
+          echo "🔧 Auto-configuring signing with xcode-project..."
+          xcode-project use-profiles
 
       # ──────────────────────────────────────────────────────────────
       # 4. Install dependencies & build web app
@@ -73,7 +73,7 @@ workflows:
           cd ios/App && pod install --repo-update
 
       # ──────────────────────────────────────────────────────────────
-      # 6. Build archive
+      # 6. Build archive (auto-detects profile)
       # ──────────────────────────────────────────────────────────────
       - name: Build archive
         script: |
@@ -88,7 +88,6 @@ workflows:
             -allowProvisioningUpdates \
             -allowProvisioningDeviceRegistration \
             DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
-            CODE_SIGN_STYLE=Manual \
             archive
 
       # ──────────────────────────────────────────────────────────────
