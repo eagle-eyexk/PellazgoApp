@@ -45,15 +45,7 @@ workflows:
           echo "✅ Certificate installed"
 
       # ──────────────────────────────────────────────────────────────
-      # 3. Let Xcode auto-detect the profile
-      # ──────────────────────────────────────────────────────────────
-      - name: Auto-configure signing
-        script: |
-          echo "🔧 Auto-configuring signing with xcode-project..."
-          xcode-project use-profiles
-
-      # ──────────────────────────────────────────────────────────────
-      # 4. Install dependencies & build web app
+      # 3. Install dependencies & build web app
       # ──────────────────────────────────────────────────────────────
       - name: Install dependencies & build web app
         script: |
@@ -63,17 +55,57 @@ workflows:
           npm run build
 
       # ──────────────────────────────────────────────────────────────
-      # 5. Sync Capacitor and install pods
+      # 4. CRITICAL: Sync Capacitor and copy web assets
       # ──────────────────────────────────────────────────────────────
-      - name: Sync Capacitor and install pods
+      - name: Sync Capacitor and copy web assets
         script: |
           echo "🔄 Syncing Capacitor..."
           npx cap sync ios
+
+          echo "📁 Copying web assets to iOS project..."
+          # Create required directories if missing
+          mkdir -p ios/App/App/public
+          mkdir -p ios/App/App/Base.lproj
+
+          # Copy config files if they exist in root
+          if [ -f "capacitor.config.json" ]; then
+            cp capacitor.config.json ios/App/App/
+            echo "✅ capacitor.config.json copied"
+          fi
+
+          if [ -d "public" ]; then
+            cp -r public/* ios/App/App/public/
+            echo "✅ public assets copied"
+          fi
+
+          # Create a basic config.xml if missing
+          if [ ! -f "ios/App/App/config.xml" ]; then
+            echo "<?xml version='1.0' encoding='utf-8'?>" > ios/App/App/config.xml
+            echo "<widget id=\"$BUNDLE_ID\" version=\"1.0.0\" xmlns=\"http://www.w3.org/ns/widgets\" xmlns:cdv=\"http://cordova.apache.org/ns/1.0\">" >> ios/App/App/config.xml
+            echo "  <name>$APP_NAME</name>" >> ios/App/App/config.xml
+            echo "  <description>Pellazgo iOS App</description>" >> ios/App/App/config.xml
+            echo "  <author email=\"info@pellazgo.com\" href=\"https://pellazgo.com/\">Pellazgo Team</author>" >> ios/App/App/config.xml
+            echo "  <content src=\"index.html\" />" >> ios/App/App/config.xml
+            echo "  <access origin=\"*\" />" >> ios/App/App/config.xml
+            echo "  <allow-intent href=\"http://*/*\" />" >> ios/App/App/config.xml
+            echo "  <allow-intent href=\"https://*/*\" />" >> ios/App/App/config.xml
+            echo "</widget>" >> ios/App/App/config.xml
+            echo "✅ config.xml created"
+          fi
+
+          echo "📁 iOS project files:"
+          ls -la ios/App/App/
+
+      # ──────────────────────────────────────────────────────────────
+      # 5. Install CocoaPods
+      # ──────────────────────────────────────────────────────────────
+      - name: Install CocoaPods
+        script: |
           echo "📦 Installing CocoaPods..."
           cd ios/App && pod install --repo-update
 
       # ──────────────────────────────────────────────────────────────
-      # 6. Build archive (auto-detects profile)
+      # 6. Build archive
       # ──────────────────────────────────────────────────────────────
       - name: Build archive
         script: |
