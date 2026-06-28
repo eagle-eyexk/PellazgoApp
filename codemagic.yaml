@@ -16,30 +16,62 @@ workflows:
         APP_NAME: "Pellazgo"
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
+        APPLE_TEAM_ID: "H4QUDPK7S3"
 
     scripts:
+      # ──────────────────────────────────────────────────────────────
+      # 1. Fix Xcode project (using the committed Python script)
+      # ──────────────────────────────────────────────────────────────
       - name: Fix Xcode project signing
         script: |
-          echo "Fixing Xcode project signing settings..."
+          echo "🔧 Fixing Xcode project signing settings..."
           python3 fix_project.py
 
+      # ──────────────────────────────────────────────────────────────
+      # 2. Set up keychain and install signing files (Codemagic native)
+      # ──────────────────────────────────────────────────────────────
+      - name: Set up code signing
+        script: |
+          echo "🔐 Setting up keychain..."
+          keychain initialize
+
+          echo "📱 Fetching signing files from App Store Connect..."
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --platform IOS
+
+          echo "🔑 Adding certificates to keychain..."
+          keychain add-certificates
+
+          echo "📋 Applying provisioning profiles to Xcode project..."
+          xcode-project use-profiles
+
+      # ──────────────────────────────────────────────────────────────
+      # 3. Install dependencies & build web app
+      # ──────────────────────────────────────────────────────────────
       - name: Install dependencies & build web app
         script: |
-          echo "Installing dependencies..."
+          echo "📦 Installing dependencies..."
           npm ci --prefer-offline
-          echo "Building web app..."
+          echo "🏗️ Building web app..."
           npm run build
 
+      # ──────────────────────────────────────────────────────────────
+      # 4. Sync Capacitor and install pods
+      # ──────────────────────────────────────────────────────────────
       - name: Sync Capacitor and install pods
         script: |
-          echo "Syncing Capacitor..."
+          echo "🔄 Syncing Capacitor..."
           npx cap sync ios
-          echo "Installing CocoaPods..."
+          echo "📦 Installing CocoaPods..."
           cd ios/App && pod install --repo-update
 
+      # ──────────────────────────────────────────────────────────────
+      # 5. Build archive
+      # ──────────────────────────────────────────────────────────────
       - name: Build archive
         script: |
-          echo "Building archive..."
+          echo "🏗️ Building archive..."
           cd ios/App
           xcodebuild \
             -workspace App.xcworkspace \
@@ -51,15 +83,19 @@ workflows:
             -allowProvisioningDeviceRegistration \
             archive
 
+      # ──────────────────────────────────────────────────────────────
+      # 6. Export IPA
+      # ──────────────────────────────────────────────────────────────
       - name: Export IPA
         script: |
-          echo "Exporting IPA..."
+          echo "📦 Exporting IPA..."
           cd ios/App
           xcodebuild \
             -exportArchive \
             -archivePath $CM_BUILD_DIR/build/App.xcarchive \
             -exportOptionsPlist exportOptions.plist \
             -exportPath $CM_BUILD_DIR/build/ipa \
+            -allowProvisioningUpdates \
             -allowProvisioningDeviceRegistration
 
     artifacts:
@@ -67,7 +103,6 @@ workflows:
       - build/App.xcarchive
 
     publishing:
-
       app_store_connect:
         auth: integration
         submit_to_testflight: true
