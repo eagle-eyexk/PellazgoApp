@@ -17,10 +17,11 @@ workflows:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
         APPLE_TEAM_ID: "H4QUDPK7S3"
+        CERT_PASSWORD: "xbGsHVMw"
 
     scripts:
       # ──────────────────────────────────────────────────────────────
-      # 1. Fix Xcode project (using the committed Python script)
+      # 1. Fix Xcode project (detects profile name automatically)
       # ──────────────────────────────────────────────────────────────
       - name: Fix Xcode project signing
         script: |
@@ -28,18 +29,18 @@ workflows:
           python3 fix_project.py
 
       # ──────────────────────────────────────────────────────────────
-      # 2. Install provisioning profile manually (CRITICAL)
+      # 2. Install provisioning profile
       # ──────────────────────────────────────────────────────────────
       - name: Install provisioning profile
         script: |
           echo "📱 Installing provisioning profile..."
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp signing/*.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-          echo "✅ Provisioning profile installed:"
+          echo "✅ Provisioning profiles installed:"
           ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
       # ──────────────────────────────────────────────────────────────
-      # 3. Set up keychain with certificate
+      # 3. Set up certificate in keychain
       # ──────────────────────────────────────────────────────────────
       - name: Set up certificate
         script: |
@@ -47,7 +48,7 @@ workflows:
           security create-keychain -p build123 build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p build123 build.keychain
-          security import signing/*.p12 -k build.keychain -P "xbGsHVMw" -A
+          security import signing/*.p12 -k build.keychain -P "$CERT_PASSWORD" -A
           security set-keychain-settings -t 3600 -l build.keychain
           echo "✅ Certificate installed"
 
@@ -72,7 +73,7 @@ workflows:
           cd ios/App && pod install --repo-update
 
       # ──────────────────────────────────────────────────────────────
-      # 6. Build archive (with explicit signing flags)
+      # 6. Build archive
       # ──────────────────────────────────────────────────────────────
       - name: Build archive
         script: |
@@ -87,7 +88,6 @@ workflows:
             -allowProvisioningUpdates \
             -allowProvisioningDeviceRegistration \
             DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
-            PROVISIONING_PROFILE_SPECIFIER="PellazgoApp" \
             CODE_SIGN_STYLE=Manual \
             archive
 
@@ -105,8 +105,7 @@ workflows:
             -exportPath $CM_BUILD_DIR/build/ipa \
             -allowProvisioningUpdates \
             -allowProvisioningDeviceRegistration \
-            DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
-            PROVISIONING_PROFILE_SPECIFIER="PellazgoApp"
+            DEVELOPMENT_TEAM=$APPLE_TEAM_ID
 
     artifacts:
       - build/ipa/*.ipa
