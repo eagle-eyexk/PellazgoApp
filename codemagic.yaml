@@ -28,26 +28,31 @@ workflows:
           python3 fix_project.py
 
       # ──────────────────────────────────────────────────────────────
-      # 2. Set up keychain and install signing files (Codemagic native)
+      # 2. Install provisioning profile manually (CRITICAL)
       # ──────────────────────────────────────────────────────────────
-      - name: Set up code signing
+      - name: Install provisioning profile
         script: |
-          echo "🔐 Setting up keychain..."
-          keychain initialize
-
-          echo "📱 Fetching signing files from App Store Connect..."
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --platform IOS
-
-          echo "🔑 Adding certificates to keychain..."
-          keychain add-certificates
-
-          echo "📋 Applying provisioning profiles to Xcode project..."
-          xcode-project use-profiles
+          echo "📱 Installing provisioning profile..."
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp signing/*.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
+          echo "✅ Provisioning profile installed:"
+          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
 
       # ──────────────────────────────────────────────────────────────
-      # 3. Install dependencies & build web app
+      # 3. Set up keychain with certificate
+      # ──────────────────────────────────────────────────────────────
+      - name: Set up certificate
+        script: |
+          echo "🔐 Setting up certificate..."
+          security create-keychain -p build123 build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p build123 build.keychain
+          security import signing/*.p12 -k build.keychain -P "xbGsHVMw" -A
+          security set-keychain-settings -t 3600 -l build.keychain
+          echo "✅ Certificate installed"
+
+      # ──────────────────────────────────────────────────────────────
+      # 4. Install dependencies & build web app
       # ──────────────────────────────────────────────────────────────
       - name: Install dependencies & build web app
         script: |
@@ -57,7 +62,7 @@ workflows:
           npm run build
 
       # ──────────────────────────────────────────────────────────────
-      # 4. Sync Capacitor and install pods
+      # 5. Sync Capacitor and install pods
       # ──────────────────────────────────────────────────────────────
       - name: Sync Capacitor and install pods
         script: |
@@ -67,7 +72,7 @@ workflows:
           cd ios/App && pod install --repo-update
 
       # ──────────────────────────────────────────────────────────────
-      # 5. Build archive
+      # 6. Build archive (with explicit signing flags)
       # ──────────────────────────────────────────────────────────────
       - name: Build archive
         script: |
@@ -81,10 +86,13 @@ workflows:
             -archivePath $CM_BUILD_DIR/build/App.xcarchive \
             -allowProvisioningUpdates \
             -allowProvisioningDeviceRegistration \
+            DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
+            PROVISIONING_PROFILE_SPECIFIER="PellazgoApp" \
+            CODE_SIGN_STYLE=Manual \
             archive
 
       # ──────────────────────────────────────────────────────────────
-      # 6. Export IPA
+      # 7. Export IPA
       # ──────────────────────────────────────────────────────────────
       - name: Export IPA
         script: |
@@ -96,7 +104,9 @@ workflows:
             -exportOptionsPlist exportOptions.plist \
             -exportPath $CM_BUILD_DIR/build/ipa \
             -allowProvisioningUpdates \
-            -allowProvisioningDeviceRegistration
+            -allowProvisioningDeviceRegistration \
+            DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
+            PROVISIONING_PROFILE_SPECIFIER="PellazgoApp"
 
     artifacts:
       - build/ipa/*.ipa
