@@ -45,7 +45,48 @@ workflows:
           echo "✅ Certificate installed"
 
       # ──────────────────────────────────────────────────────────────
-      # 3. Install dependencies & build web app
+      # 3. Fix Xcode project to use AUTOMATIC signing
+      # ──────────────────────────────────────────────────────────────
+      - name: Fix Xcode project signing
+        script: |
+          echo "🔧 Setting Xcode project to Automatic signing..."
+          python3 -c "
+          import re
+          import os
+
+          PROJECT_FILE = 'ios/App/App.xcodeproj/project.pbxproj'
+
+          if not os.path.exists(PROJECT_FILE):
+              print(f'Project file not found: {PROJECT_FILE}')
+              exit(1)
+
+          with open(PROJECT_FILE, 'r') as f:
+              content = f.read()
+
+          # Set to Automatic signing
+          content = re.sub(r'CODE_SIGN_STYLE = Manual;', 'CODE_SIGN_STYLE = Automatic;', content)
+          content = re.sub(r'CODE_SIGN_STYLE = .*?;', 'CODE_SIGN_STYLE = Automatic;', content)
+
+          # Remove manual profile specifier
+          content = re.sub(r'PROVISIONING_PROFILE_SPECIFIER = .*?;', '', content)
+
+          # Remove any PROVISIONING_PROFILE lines
+          content = re.sub(r'PROVISIONING_PROFILE = .*?;', '', content)
+
+          # Set DEVELOPMENT_TEAM
+          content = re.sub(r'DEVELOPMENT_TEAM = .*?;', f'DEVELOPMENT_TEAM = H4QUDPK7S3;', content)
+
+          # Clean up empty lines
+          content = re.sub(r'\n\s*\n', '\n', content)
+
+          with open(PROJECT_FILE, 'w') as f:
+              f.write(content)
+
+          print('✅ Project set to Automatic signing')
+          "
+
+      # ──────────────────────────────────────────────────────────────
+      # 4. Install dependencies & build web app
       # ──────────────────────────────────────────────────────────────
       - name: Install dependencies & build web app
         script: |
@@ -55,7 +96,7 @@ workflows:
           npm run build
 
       # ──────────────────────────────────────────────────────────────
-      # 4. CRITICAL: Sync Capacitor and copy web assets
+      # 5. Sync Capacitor and copy web assets
       # ──────────────────────────────────────────────────────────────
       - name: Sync Capacitor and copy web assets
         script: |
@@ -63,11 +104,9 @@ workflows:
           npx cap sync ios
 
           echo "📁 Copying web assets to iOS project..."
-          # Create required directories if missing
           mkdir -p ios/App/App/public
           mkdir -p ios/App/App/Base.lproj
 
-          # Copy config files if they exist in root
           if [ -f "capacitor.config.json" ]; then
             cp capacitor.config.json ios/App/App/
             echo "✅ capacitor.config.json copied"
@@ -78,7 +117,6 @@ workflows:
             echo "✅ public assets copied"
           fi
 
-          # Create a basic config.xml if missing
           if [ ! -f "ios/App/App/config.xml" ]; then
             echo "<?xml version='1.0' encoding='utf-8'?>" > ios/App/App/config.xml
             echo "<widget id=\"$BUNDLE_ID\" version=\"1.0.0\" xmlns=\"http://www.w3.org/ns/widgets\" xmlns:cdv=\"http://cordova.apache.org/ns/1.0\">" >> ios/App/App/config.xml
@@ -93,11 +131,8 @@ workflows:
             echo "✅ config.xml created"
           fi
 
-          echo "📁 iOS project files:"
-          ls -la ios/App/App/
-
       # ──────────────────────────────────────────────────────────────
-      # 5. Install CocoaPods
+      # 6. Install CocoaPods
       # ──────────────────────────────────────────────────────────────
       - name: Install CocoaPods
         script: |
@@ -105,7 +140,7 @@ workflows:
           cd ios/App && pod install --repo-update
 
       # ──────────────────────────────────────────────────────────────
-      # 6. Build archive
+      # 7. Build archive (Automatic signing – no profile specified)
       # ──────────────────────────────────────────────────────────────
       - name: Build archive
         script: |
@@ -123,7 +158,7 @@ workflows:
             archive
 
       # ──────────────────────────────────────────────────────────────
-      # 7. Export IPA
+      # 8. Export IPA
       # ──────────────────────────────────────────────────────────────
       - name: Export IPA
         script: |
