@@ -1,41 +1,33 @@
 workflows:
   ios_tiligo:
-    name: Tiligo iOS Release
+    name: Tiligo iOS Build & Release
     max_build_duration: 60
 
-    environment:
-      flutter: stable
-      xcode: latest
+    integrations:
+      app_store_connect:
+        - tiligo_asc                         # Your integration with key RR98G82857
 
+    environment:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.tiligo.tiligo
 
-      integrations:
-        app_store_connect: tiligo_asc
-
       vars:
-        XCODE_WORKSPACE: Runner.xcworkspace
-        XCODE_SCHEME: Runner
+        XCODE_WORKSPACE: "Runner.xcworkspace"
+        XCODE_SCHEME: "Runner"
 
-    cache:
-      cache_paths:
-        - ~/.pub-cache
-        - ios/Pods
-        - ~/Library/Caches/CocoaPods
+      xcode: latest
 
     scripts:
-      - name: Get Flutter packages
+      - name: Verify project structure
         script: |
-          flutter clean
-          flutter pub get
+          ls -R
 
-      - name: Install CocoaPods
+      - name: Install dependencies (CocoaPods)
         script: |
-          cd ios
-          pod repo update
-          pod install
-          cd ..
+          if [ -f "Podfile" ]; then
+            pod install
+          fi
 
       - name: Initialize keychain
         script: |
@@ -48,24 +40,17 @@ workflows:
             --type IOS_APP_STORE \
             --create
 
-      - name: Set up code signing
+      - name: Build IPA
         script: |
-          xcode-project use-profiles
-
-      - name: Build Flutter iOS IPA
-        script: |
-          flutter build ipa \
-            --release \
-            --export-options-plist=/Users/builder/export_options.plist
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
 
     artifacts:
       - build/ios/ipa/*.ipa
-      - build/ios/archive/*.xcarchive
-      - /tmp/xcodebuild_logs/*.log
-      - flutter_drive.log
 
     publishing:
       app_store_connect:
-        auth: integration
+        auth: integration                     # ✅ Uses tiligo_asc integration
         submit_to_testflight: true
-        submit_to_app_store_review: false
+        submit_to_app_store: false            # ✅ Changed from submit_to_app_store_review
