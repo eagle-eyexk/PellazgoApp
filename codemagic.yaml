@@ -1,179 +1,71 @@
 workflows:
-  ios-release:
-    name: Pellazgo iOS Release
+  ios_tiligo:
+    name: Tiligo iOS Release
     max_build_duration: 60
-    instance_type: mac_mini_m2
-
-    integrations:
-      app_store_connect: pellazgo_asc
 
     environment:
-      node: 18
+      flutter: stable
       xcode: latest
-      cocoapods: default
+
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.tiligo.tiligo
+
+      integrations:
+        app_store_connect: tiligo_asc
+
       vars:
-        BUNDLE_ID: "com.pellazgo.pellazgo"
-        APP_NAME: "Pellazgo"
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
-        XCODE_SCHEME: "App"
-        APPLE_TEAM_ID: "H4QUDPK7S3"
-        CERT_PASSWORD: "xbGsHVMw"
+        XCODE_WORKSPACE: Runner.xcworkspace
+        XCODE_SCHEME: Runner
+
+    cache:
+      cache_paths:
+        - ~/.pub-cache
+        - ios/Pods
+        - ~/Library/Caches/CocoaPods
 
     scripts:
-      # ──────────────────────────────────────────────────────────────
-      # 1. Install provisioning profile
-      # ──────────────────────────────────────────────────────────────
-      - name: Install provisioning profile
+      - name: Get Flutter packages
         script: |
-          echo "📱 Installing provisioning profile..."
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp signing/*.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/
-          echo "✅ Provisioning profiles installed:"
-          ls -la ~/Library/MobileDevice/Provisioning\ Profiles/
+          flutter clean
+          flutter pub get
 
-      # ──────────────────────────────────────────────────────────────
-      # 2. Set up certificate in keychain
-      # ──────────────────────────────────────────────────────────────
-      - name: Set up certificate
-        script: |
-          echo "🔐 Setting up certificate..."
-          security create-keychain -p build123 build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p build123 build.keychain
-          security import signing/*.p12 -k build.keychain -P "$CERT_PASSWORD" -A
-          security set-keychain-settings -t 3600 -l build.keychain
-          echo "✅ Certificate installed"
-
-      # ──────────────────────────────────────────────────────────────
-      # 3. Fix bundle ID and signing settings
-      # ──────────────────────────────────────────────────────────────
-      - name: Fix bundle ID and signing
-        script: |
-          echo "🔧 Fixing bundle ID to $BUNDLE_ID..."
-          python3 -c "
-          import re
-          import os
-
-          BUNDLE_ID = 'com.pellazgo.pellazgo'
-          TEAM_ID = 'H4QUDPK7S3'
-          PROFILE_NAME = 'PellazgoApp'
-
-          # Fix Info.plist
-          info_plist = 'ios/App/App/Info.plist'
-          if os.path.exists(info_plist):
-              with open(info_plist, 'r') as f:
-                  content = f.read()
-              content = re.sub(r'<key>CFBundleIdentifier</key>\\s*<string>.*?</string>',
-                               f'<key>CFBundleIdentifier</key>\\n\\t<string>{BUNDLE_ID}</string>', content)
-              with open(info_plist, 'w') as f:
-                  f.write(content)
-              print('✅ Info.plist updated')
-
-          # Fix project.pbxproj
-          project_file = 'ios/App/App.xcodeproj/project.pbxproj'
-          if os.path.exists(project_file):
-              with open(project_file, 'r') as f:
-                  content = f.read()
-
-              # Update bundle ID in all places
-              content = re.sub(r'PRODUCT_BUNDLE_IDENTIFIER = .*?;', f'PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};', content)
-
-              # Set manual signing
-              content = re.sub(r'CODE_SIGN_STYLE = Automatic;', 'CODE_SIGN_STYLE = Manual;', content)
-              content = re.sub(r'CODE_SIGN_STYLE = .*?;', 'CODE_SIGN_STYLE = Manual;', content)
-
-              # Set team ID
-              content = re.sub(r'DEVELOPMENT_TEAM = .*?;', f'DEVELOPMENT_TEAM = {TEAM_ID};', content)
-
-              # Set profile
-              content = re.sub(r'PROVISIONING_PROFILE_SPECIFIER = .*?;', f'PROVISIONING_PROFILE_SPECIFIER = \"{PROFILE_NAME}\";', content)
-
-              # Also add to any buildSettings block
-              pattern = r'(buildSettings = \\{)'
-              replacement = r'\\1\\n\\t\\t\\t\\tPRODUCT_BUNDLE_IDENTIFIER = ' + BUNDLE_ID + ';\\n\\t\\t\\t\\tDEVELOPMENT_TEAM = ' + TEAM_ID + ';\\n\\t\\t\\t\\tCODE_SIGN_STYLE = Manual;\\n\\t\\t\\t\\tPROVISIONING_PROFILE_SPECIFIER = \"' + PROFILE_NAME + '\";'
-              content = re.sub(pattern, replacement, content)
-
-              with open(project_file, 'w') as f:
-                  f.write(content)
-              print('✅ project.pbxproj updated')
-          "
-
-      # ──────────────────────────────────────────────────────────────
-      # 4. Install dependencies & build web app
-      # ──────────────────────────────────────────────────────────────
-      - name: Install dependencies & build web app
-        script: |
-          echo "📦 Installing dependencies..."
-          npm ci --prefer-offline
-          echo "🏗️ Building web app..."
-          npm run build
-
-      # ──────────────────────────────────────────────────────────────
-      # 5. Sync Capacitor (this updates the iOS project)
-      # ──────────────────────────────────────────────────────────────
-      - name: Sync Capacitor
-        script: |
-          echo "🔄 Syncing Capacitor..."
-          npx cap sync ios
-
-          # Also copy capacitor.config.json to iOS folder
-          if [ -f "capacitor.config.json" ]; then
-            cp capacitor.config.json ios/App/App/
-            echo "✅ capacitor.config.json copied"
-          fi
-
-      # ──────────────────────────────────────────────────────────────
-      # 6. Install CocoaPods
-      # ──────────────────────────────────────────────────────────────
       - name: Install CocoaPods
         script: |
-          echo "📦 Installing CocoaPods..."
-          cd ios/App && pod install --repo-update
+          cd ios
+          pod repo update
+          pod install
+          cd ..
 
-      # ──────────────────────────────────────────────────────────────
-      # 7. Build archive (with manual signing flags)
-      # ──────────────────────────────────────────────────────────────
-      - name: Build archive
+      - name: Initialize keychain
         script: |
-          echo "🏗️ Building archive..."
-          cd ios/App
-          xcodebuild \
-            -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -sdk iphoneos \
-            -archivePath $CM_BUILD_DIR/build/App.xcarchive \
-            -allowProvisioningUpdates \
-            -allowProvisioningDeviceRegistration \
-            DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
-            PROVISIONING_PROFILE_SPECIFIER="PellazgoApp" \
-            CODE_SIGN_STYLE=Manual \
-            PRODUCT_BUNDLE_IDENTIFIER=$BUNDLE_ID \
-            archive
+          keychain initialize
 
-      # ──────────────────────────────────────────────────────────────
-      # 8. Export IPA
-      # ──────────────────────────────────────────────────────────────
-      - name: Export IPA
+      - name: Fetch signing files
         script: |
-          echo "📦 Exporting IPA..."
-          cd ios/App
-          xcodebuild \
-            -exportArchive \
-            -archivePath $CM_BUILD_DIR/build/App.xcarchive \
-            -exportOptionsPlist exportOptions.plist \
-            -exportPath $CM_BUILD_DIR/build/ipa \
-            -allowProvisioningUpdates \
-            -allowProvisioningDeviceRegistration \
-            DEVELOPMENT_TEAM=$APPLE_TEAM_ID \
-            PROVISIONING_PROFILE_SPECIFIER="PellazgoApp"
+          app-store-connect fetch-signing-files \
+            com.tiligo.tiligo \
+            --type IOS_APP_STORE \
+            --create
+
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
+
+      - name: Build Flutter iOS IPA
+        script: |
+          flutter build ipa \
+            --release \
+            --export-options-plist=/Users/builder/export_options.plist
 
     artifacts:
-      - build/ipa/*.ipa
-      - build/App.xcarchive
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
 
     publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-        submit_to_app_store: false
+        submit_to_app_store_review: false
