@@ -1,20 +1,19 @@
 workflows:
-  ios_tiligo:
-    name: Tiligo iOS Build & Release
+  ios_pellazgo:
+    name: Pellazgo iOS Build & Release
     max_build_duration: 60
 
     integrations:
-      app_store_connect:
-        - tiligo_asc                         # Your integration with key RR98G82857
+      app_store_connect: pellazgo_asc
 
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.tiligo.tiligo
+        bundle_identifier: com.pellazgo.pellazgo
 
       vars:
-        XCODE_WORKSPACE: "Runner.xcworkspace"
-        XCODE_SCHEME: "Runner"
+        XCODE_WORKSPACE: Runner.xcworkspace
+        XCODE_SCHEME: Runner
 
       xcode: latest
 
@@ -23,10 +22,12 @@ workflows:
         script: |
           ls -R
 
-      - name: Install dependencies (CocoaPods)
+      - name: Install CocoaPods
         script: |
-          if [ -f "Podfile" ]; then
+          if [ -f "ios/Podfile" ]; then
+            cd ios
             pod install
+            cd ..
           fi
 
       - name: Initialize keychain
@@ -36,7 +37,7 @@ workflows:
       - name: Fetch signing files
         script: |
           app-store-connect fetch-signing-files \
-            com.tiligo.tiligo \
+            com.pellazgo.pellazgo \
             --type IOS_APP_STORE \
             --create
 
@@ -51,6 +52,6 @@ workflows:
 
     publishing:
       app_store_connect:
-        auth: integration                     # ✅ Uses tiligo_asc integration
+        auth: integration
         submit_to_testflight: true
-        submit_to_app_store: false            # ✅ Changed from submit_to_app_store_review
+        submit_to_app_store: false
