@@ -1,57 +1,300 @@
-workflows:
-  ios_pellazgo:
-    name: Pellazgo iOS Build & Release
-    max_build_duration: 60
+###############################################################################
+# Pellazgo – Codemagic CI/CD
+#
+# REQUIRED VARIABLE GROUPS (add in Codemagic UI → Teams → Global variables):
+#
+# app_store_credentials
+#   APP_STORE_CONNECT_KEY_ID        – Key ID from App Store Connect
+#   APP_STORE_CONNECT_ISSUER_ID     – Issuer ID from App Store Connect
+#   APP_STORE_CONNECT_PRIVATE_KEY   – Contents of the .p8 file (full text)
+#
+# ios_signing
+#   CERTIFICATE_PRIVATE_KEY         – Private key for the signing certificate
+#
+# google_play (Android only)
+#   GCLOUD_SERVICE_ACCOUNT_CREDENTIALS – Full JSON service account key
+#
+# android_signing (Android only)
+#   CM_KEYSTORE
+#   CM_KEYSTORE_PASSWORD
+#   CM_KEY_ALIAS
+#   CM_KEY_PASSWORD
+###############################################################################
 
-    integrations:
-      app_store_connect: pellazgo_asc
+workflows:
+
+  ###########################################################################
+  # iOS — Build, Sign & Upload to TestFlight
+  ###########################################################################
+  pellazgo-ios-testflight:
+    name: "Pellazgo iOS — TestFlight"
+    max_build_duration: 120
+    instance_type: mac_mini_m2
 
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.pellazgo.pellazgo
-
+      groups:
+        - app_store_credentials
+        - ios_signing
       vars:
-        XCODE_WORKSPACE: Runner.xcworkspace
-        XCODE_SCHEME: Runner
+        BUNDLE_ID: "com.pellazgo.pellazgo"
+        EXPO_NO_GIT_STATUS: "1"
+        EAS_NO_VCS: "1"
+      node: "22.11.0"
+      xcode: "16.2"
+      cocoapods: default
 
-      xcode: latest
+    triggering:
+      events:
+        - push
+        - tag
+      branch_patterns:
+        - pattern: main
+          include: true
+      tag_patterns:
+        - pattern: "v*"
+          include: true
+
+    cache:
+      cache_paths:
+        - $HOME/.pnpm-store
+        - $CM_BUILD_DIR/artifacts/mobile/ios/Pods
 
     scripts:
-      - name: Verify project structure
+      - name: Enable pnpm
         script: |
-          ls -R
+          corepack enable
+          corepack prepare pnpm@latest --activate
+
+      - name: Install dependencies
+        script: |
+          pnpm install --frozen-lockfile
+
+      - name: Configure signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Expo prebuild
+        script: |
+          cd artifacts/mobile
+          npx expo prebuild --clean --platform ios --no-install
 
       - name: Install CocoaPods
         script: |
-          if [ -f "ios/Podfile" ]; then
-            cd ios
-            pod install
-            cd ..
-          fi
+          cd artifacts/mobile/ios
+          pod install
 
-      - name: Initialize keychain
+      - name: Set build number
         script: |
-          keychain initialize
-
-      - name: Fetch signing files
-        script: |
-          app-store-connect fetch-signing-files \
-            com.pellazgo.pellazgo \
-            --type IOS_APP_STORE \
-            --create
+          cd artifacts/mobile/ios
+          xcrun agvtool new-version -all "$BUILD_NUMBER"
 
       - name: Build IPA
         script: |
+          cd artifacts/mobile
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME"
+            --workspace ios/mobile.xcworkspace \
+            --scheme mobile \
+            --config Release \
+            --output-dir "$CM_BUILD_DIR/build/ios"
 
     artifacts:
-      - build/ios/ipa/*.ipa
+      - build/ios/**/*.ipa
+      - artifacts/mobile/ios/build/**/*.dSYM
 
     publishing:
+      email:
+        recipients:
+          - info@pellazgo.com
+        notify:
+          success: true
+          failure: true
+
       app_store_connect:
-        auth: integration
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_ID
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
         submit_to_app_store: false
+        beta_groups:
+          - "Internal Testers"
+
+  ###########################################################################
+  # iOS — Production App Store Release
+  ###########################################################################
+  pellazgo-ios-appstore:
+    name: "Pellazgo iOS — App Store"
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+
+    environment:
+      groups:
+        - app_store_credentials
+        - ios_signing
+      vars:
+        BUNDLE_ID: "com.pellazgo.pellazgo"
+        EXPO_NO_GIT_STATUS: "1"
+        EAS_NO_VCS: "1"
+      node: "22.11.0"
+      xcode: "16.2"
+      cocoapods: default
+
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "release-*"
+          include: true
+
+    cache:
+      cache_paths:
+        - $HOME/.pnpm-store
+        - $CM_BUILD_DIR/artifacts/mobile/ios/Pods
+
+    scripts:
+      - name: Enable pnpm
+        script: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+
+      - name: Install dependencies
+        script: |
+          pnpm install --frozen-lockfile
+
+      - name: Configure signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Expo prebuild
+        script: |
+          cd artifacts/mobile
+          npx expo prebuild --clean --platform ios --no-install
+
+      - name: Install CocoaPods
+        script: |
+          cd artifacts/mobile/ios
+          pod install
+
+      - name: Set build number
+        script: |
+          cd artifacts/mobile/ios
+          xcrun agvtool new-version -all "$BUILD_NUMBER"
+
+      - name: Build IPA
+        script: |
+          cd artifacts/mobile
+          xcode-project build-ipa \
+            --workspace ios/mobile.xcworkspace \
+            --scheme mobile \
+            --config Release \
+            --output-dir "$CM_BUILD_DIR/build/ios"
+
+    artifacts:
+      - build/ios/**/*.ipa
+      - artifacts/mobile/ios/build/**/*.dSYM
+
+    publishing:
+      email:
+        recipients:
+          - info@pellazgo.com
+        notify:
+          success: true
+          failure: true
+
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_ID
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: false
+        submit_to_app_store: true
+        release_type: AFTER_APPROVAL
+
+  ###########################################################################
+  # Android — Play Store Internal
+  ###########################################################################
+  pellazgo-android-release:
+    name: "Pellazgo Android — Play Store"
+    max_build_duration: 90
+    instance_type: linux_x2
+
+    environment:
+      groups:
+        - google_play
+        - android_signing
+      vars:
+        PACKAGE_NAME: "com.pellazgo.pellazgo"
+        EXPO_NO_GIT_STATUS: "1"
+        EAS_NO_VCS: "1"
+      node: "22.11.0"
+      java: "17"
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+
+    cache:
+      cache_paths:
+        - $HOME/.pnpm-store
+        - $HOME/.gradle/caches
+
+    scripts:
+      - name: Enable pnpm
+        script: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+
+      - name: Install dependencies
+        script: |
+          pnpm install --frozen-lockfile
+
+      - name: Decode keystore
+        script: |
+          echo "$CM_KEYSTORE" | base64 --decode > /tmp/keystore.jks
+
+      - name: Expo prebuild
+        script: |
+          cd artifacts/mobile
+          npx expo prebuild --clean --platform android --no-install
+
+      - name: Configure signing
+        script: |
+          cat >> artifacts/mobile/android/gradle.properties << EOF
+          MYAPP_UPLOAD_STORE_FILE=/tmp/keystore.jks
+          MYAPP_UPLOAD_KEY_ALIAS=$CM_KEY_ALIAS
+          MYAPP_UPLOAD_STORE_PASSWORD=$CM_KEYSTORE_PASSWORD
+          MYAPP_UPLOAD_KEY_PASSWORD=$CM_KEY_PASSWORD
+          EOF
+
+      - name: Build AAB
+        script: |
+          cd artifacts/mobile/android
+          chmod +x gradlew
+          ./gradlew bundleRelease --no-daemon
+
+    artifacts:
+      - artifacts/mobile/android/app/build/outputs/**/*.aab
+
+    publishing:
+      email:
+        recipients:
+          - info@pellazgo.com
+        notify:
+          success: true
+          failure: true
+
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: false
